@@ -1,0 +1,109 @@
+Resources:
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: YourLambdaFunctionName
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Timeout: 30
+      MemorySize: 512
+      Code:
+        ZipFile: |
+          const express = require('express');
+          const cors = require('cors');
+          const multer = require('multer');
+          const { v4: uuid } = require('uuid');
+          const {
+            GetObjectCommand,
+            ListObjectsV2Command,
+            PutObjectCommand,
+            S3Client,
+          } = require('@aws-sdk/client-s3');
+          const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+          const s3 = new S3Client({
+            region: 'us-east-1',
+          });
+          const BUCKET = 'ahmedalimsolimanpics';
+
+          const uploadToS3 = async ({ file, userId }) => {
+            const key = `${userId}/${uuid()}`;
+            const command = new PutObjectCommand({
+              Bucket: BUCKET,
+              Key: key,
+              Body: file.buffer,
+              ContentType: file.mimetype,
+            });
+
+            try {
+              await s3.send(command);
+              return { key };
+            } catch (error) {
+              console.log(error);
+              return { error };
+            }
+          };
+
+          const getImageKeysByUser = async (userId) => {
+            const command = new ListObjectsV2Command({
+              Bucket: BUCKET,
+              Prefix: userId,
+            });
+
+            const { Contents = [] } = await s3.send(command);
+
+            return Contents
+              .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
+              .map((image) => image.Key);
+          };
+
+          const getUserPresignedUrls = async (userId) => {
+            try {
+              const imageKeys = await getImageKeysByUser(userId);
+
+              const presignedUrls = await Promise.all(
+                imageKeys.map((key) => {
+                  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+                  return getSignedUrl(s3, command, { expiresIn: 900 });
+                })
+              );
+              return { presignedUrls };
+            } catch (error) {
+              console.log(error);
+              return { error };
+            }
+          };
+
+          const app = express();
+
+          const storage = multer.memoryStorage();
+          const upload = multer({ storage });
+
+          app.use(cors({ origin: '*' }));
+          app.use(express.json());
+
+          app.post('/images', upload.single('image'), async (req, res) => {
+            const { file } = req;
+            const userId = req.headers['x-user-id'];
+
+            if (!file || !userId) return res.status(400).json({ message: 'Bad request' });
+
+            const { error, key } = await uploadToS3({ file, userId });
+            if (error) return res.status(500).json({ message: error.message });
+
+            return res.status(201).json({ key });
+          });
+
+          app.get('/', function (req, res) {
+            res.send('SUCCESSS');
+          });
+
+          app.get('/images', async (req, res) => {
+            const userId = req.headers['x-user-id'];
+
+            if (!userId) return res.status(400).json({ message: 'Bad request' });
+
+            const { error, presignedUrls } = await getUserPresignedUrls(userId);
+            if (error) return res.status(400).json({ message: error.message });
+
+            return res.json(presignedUrls);
