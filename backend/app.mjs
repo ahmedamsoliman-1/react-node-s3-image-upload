@@ -30,6 +30,10 @@ app.post("/images", upload.single("image"), (req, res) => {
   return res.status(201).json({ key });
 });
 
+app.get("/", function (req, res) {
+  res.send("SUCCESSS");
+});
+
 app.get("/images", async (req, res) => {
   const userId = req.headers["x-user-id"];
 
