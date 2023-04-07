@@ -1,4 +1,4 @@
-// import 'dotenv/config';
+import 'dotenv/config';
 import express, { json } from 'express';
 import cors from 'cors';
 import multer, { memoryStorage } from 'multer';
@@ -15,7 +15,12 @@ import { v4 as uuid } from 'uuid';
 
 const s3 = new S3Client({
   region: 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+  },
 });
+
 // const BUCKET = process.env.BUCKET;
 
 const BUCKET = 'ahmedalimsolimanpics';
