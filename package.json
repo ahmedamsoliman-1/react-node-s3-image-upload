@@ -14,7 +14,7 @@
     "uuid": "^9.0.0"
   },
   "scripts": {
-    "start": "node app_2.mjs"
+    "start": "node app.mjs"
   },
   "keywords": [],
   "author": "",

@@ -14,7 +14,7 @@ const s3 = new S3Client({
     secretAccessKey: process.env.SECRET_ACCESS_KEY,
   },
 });
-const BUCKET = process.env.BUCKET_UPLOAD;
+const BUCKET = process.env.BUCKET_UAE;
 // const BUCKET = 'ahmedalimsolimanpics';
 
 export const uploadToS3 = async ({ file, userId }) => {
