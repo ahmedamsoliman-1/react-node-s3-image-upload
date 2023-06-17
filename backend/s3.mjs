@@ -3,15 +3,19 @@ import {
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuid } from 'uuid';
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { v4 as uuid } from "uuid";
+require("dotenv").config();
 
-const s3 = new S3Client({
-  region: 'us-east-1',
-});
+const awsConfig = {
+  accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY,
+  secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
+};
+
+const s3 = new S3Client(awsConfig);
 // const BUCKET = process.env.BUCKET;
-const BUCKET = 'ahmedalimsolimanpics';
+const BUCKET = "ahmedalimsolimanpics";
 
 export const uploadToS3 = async ({ file, userId }) => {
   const key = `${userId}/${uuid()}`;
@@ -31,7 +35,7 @@ export const uploadToS3 = async ({ file, userId }) => {
   }
 };
 
-const getImageKeysByUser = async userId => {
+const getImageKeysByUser = async (userId) => {
   const command = new ListObjectsV2Command({
     Bucket: BUCKET,
     Prefix: userId,
@@ -41,15 +45,15 @@ const getImageKeysByUser = async userId => {
 
   return Contents.sort(
     (a, b) => new Date(b.LastModified) - new Date(a.LastModified)
-  ).map(image => image.Key);
+  ).map((image) => image.Key);
 };
 
-export const getUserPresignedUrls = async userId => {
+export const getUserPresignedUrls = async (userId) => {
   try {
     const imageKeys = await getImageKeysByUser(userId);
 
     const presignedUrls = await Promise.all(
-      imageKeys.map(key => {
+      imageKeys.map((key) => {
         const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
         return getSignedUrl(s3, command, { expiresIn: 900 }); // default
       })
