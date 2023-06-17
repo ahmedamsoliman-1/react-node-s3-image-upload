@@ -6,7 +6,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuid } from "uuid";
-require("dotenv").config();
+import dotenv from "dotenv";
+// require("dotenv").config();
+dotenv.config();
 
 const awsConfig = {
   accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY,
